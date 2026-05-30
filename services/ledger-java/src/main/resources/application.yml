@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: ${LEDGER_DB_URL:jdbc:postgresql://localhost:5432/mobilepos}
+    username: ${LEDGER_DB_USER:postgres}
+    password: ${LEDGER_DB_PASSWORD:postgres}

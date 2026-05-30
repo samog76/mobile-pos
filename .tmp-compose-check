@@ -1,0 +1,152 @@
+name: mobile-pos
+services:
+  api-node:
+    command:
+      - sh
+      - -c
+      - npm install && npm run dev
+    depends_on:
+      kafka:
+        condition: service_started
+        required: true
+      localstack:
+        condition: service_started
+        required: true
+      mongodb:
+        condition: service_started
+        required: true
+      postgres:
+        condition: service_started
+        required: true
+    image: node:20
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4000
+        published: "4000"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /tmp/workspace/services/api-node
+        target: /app
+        bind:
+          create_host_path: true
+    working_dir: /app
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8123
+        published: "8123"
+        protocol: tcp
+      - mode: ingress
+        target: 9000
+        published: "9000"
+        protocol: tcp
+  kafka:
+    depends_on:
+      zookeeper:
+        condition: service_started
+        required: true
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_BROKER_ID: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    image: confluentinc/cp-kafka:7.6.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 9092
+        published: "9092"
+        protocol: tcp
+  ledger-java:
+    command:
+      - sh
+      - -c
+      - mvn spring-boot:run
+    depends_on:
+      postgres:
+        condition: service_started
+        required: true
+    image: maven:3.9-eclipse-temurin-17
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: "8080"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /tmp/workspace/services/ledger-java
+        target: /app
+        bind:
+          create_host_path: true
+    working_dir: /app
+  localstack:
+    environment:
+      SERVICES: sqs
+    image: localstack/localstack:3.6
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4566
+        published: "4566"
+        protocol: tcp
+  mongodb:
+    image: mongo:7
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 27017
+        published: "27017"
+        protocol: tcp
+  postgres:
+    environment:
+      POSTGRES_DB: mobilepos
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    image: postgres:16
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+  risk-python:
+    command:
+      - sh
+      - -c
+      - pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 5000
+    image: python:3.12
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5000
+        published: "5000"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /tmp/workspace/services/risk-python
+        target: /app
+        bind:
+          create_host_path: true
+    working_dir: /app
+  zookeeper:
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "2181"
+    image: confluentinc/cp-zookeeper:7.6.1
+    networks:
+      default: null
+networks:
+  default:
+    name: mobile-pos_default

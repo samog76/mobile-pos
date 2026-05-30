@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-java
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: ledger-java }
+  template:
+    metadata:
+      labels: { app: ledger-java }
+    spec:
+      containers:
+        - name: ledger-java
+          image: ghcr.io/samog76/mobile-pos-ledger-java:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-java
+spec:
+  selector: { app: ledger-java }
+  ports:
+    - port: 80
+      targetPort: 8080
